@@ -4,7 +4,15 @@
   # Which nixpkgs channel to use.
   channel = "stable-24.05"; # or "unstable"
   # Use https://search.nixos.org/packages to find packages
-  packages = [ pkgs.python3 ];
+  packages = [ 
+    pkgs.python3
+    pkgs.python311Packages.flask
+    pkgs.python311Packages.praw
+    pkgs.python311Packages.nltk
+    pkgs.python311Packages.flask-caching
+    pkgs.python311Packages.matplotlib
+    pkgs.python311Packages.redis
+   ];
   # pkgs.python312Packages.pip
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"

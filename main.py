@@ -5,14 +5,6 @@ import nltk
 from flask_caching import Cache
 import logging
 from functools import lru_cache
-import matplotlib
-
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
-
-matplotlib.style.use('fast')  # Use faster style for plots
-import io
-import base64
 import concurrent.futures
 import time
 import os
@@ -119,32 +111,11 @@ def calculate_time_series_sentiment(analyzed_posts, interval_seconds=60):
     return [{"time": interval, **data} for interval, data in sentiment_data.items() if data["total"] > 0]
 
 
-@lru_cache(maxsize=128)
-def create_sentiment_plot(pos_pct, neg_pct, neu_pct):
-    if any(not isinstance(x, (int, float)) or np.isnan(x) for x in [pos_pct, neg_pct, neu_pct]):
-        pos_pct = neg_pct = neu_pct = 33.33
-
-    if pos_pct + neg_pct + neu_pct == 0:
-        pos_pct = neg_pct = neu_pct = 33.33
-    fig, ax = plt.subplots(figsize=(4, 4), dpi=72)
-    labels = ['Positive', 'Negative', 'Neutral']
-    sizes = [pos_pct, neg_pct, neu_pct]
-    colors = ['#92D050', '#FF0000', '#FFFF00']
-    ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.axis('equal')
-
-    img = io.BytesIO()
-    plt.savefig(img, format='png', bbox_inches='tight', 
-                pad_inches=0.1, transparent=False)
-    plt.close(fig)  # Close to free memory
-
-    img.seek(0)
-    return base64.b64encode(img.getvalue()).decode()
-
-
 @app.route("/sentiment-data")
 def sentiment_data():
     company_name = request.args.get("company_name")
+    if not company_name:
+        return jsonify([])
     posts = get_reddit_posts(company_name)
     analyzed_posts = list(map(analyze_post, posts))
     time_series_data = calculate_time_series_sentiment(analyzed_posts)
@@ -169,32 +140,11 @@ def index():
                     chunk_results = list(executor.map(analyze_post, chunk))
                     analyzed_posts.extend(chunk_results)
 
-        # Calculate sentiment stats
-        positive_count = sum(1 for post in analyzed_posts if post["title_sentiment"] > 0)
-        negative_count = sum(1 for post in analyzed_posts if post["title_sentiment"] < 0)
-        neutral_count = len(analyzed_posts) - positive_count - negative_count
-
-        total_posts = len(analyzed_posts)
-        if total_posts > 0:
-            positive_percent = (positive_count / total_posts) * 100
-            negative_percent = (negative_count / total_posts) * 100
-            neutral_percent = (neutral_count / total_posts) * 100
-        else:
-            positive_percent = negative_percent = neutral_percent = 33.33
-
-        try:
-            plot_url = create_sentiment_plot(positive_percent, negative_percent, neutral_percent)
-        except Exception as e:  # Handle plot creation errors
-            logger.error(f"Error creating plot: {e}")
-            # Provide a fallback empty plot
-            plot_url = ""
-
         processing_time = round(time.time() - start_time, 2)
         return render_template(
             "index.html",
             company_name=company_name,
             posts=analyzed_posts,
-            plot_url=plot_url,
             processing_time=processing_time,
             error_message="" if posts else "No Reddit posts found. Please try another search term."
         )

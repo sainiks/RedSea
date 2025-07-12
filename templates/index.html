@@ -54,12 +54,10 @@
                 </p>
                 {% endif %}
                 
-                {% if plot_url %}
                 <div class="chart-container scale-in">
                     <h3>Overall Sentiment Distribution:</h3>
                     <canvas id="sentimentChart"></canvas>
                 </div>
-                {% endif %}
 
                 <div class="posts-container slide-up">
                     <h3>Analyzed Posts ({{ posts|length }})</h3>
@@ -142,6 +140,6 @@
             });
         </script>
         <!-- Include your chart.js script -->
-        <script src="{{ url_for('static', filename='chart.js') }}"></script>
+        <script src="{{ url_for('static', filename='chart.js') }}" data-company-name="{{ company_name }}"></script>
     </body>
 </html>
