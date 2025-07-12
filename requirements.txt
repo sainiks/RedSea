@@ -1,0 +1,13 @@
+# Dev environment
+pip
+autopep8
+
+# App
+flask
+
+Flask
+praw
+nltk>=3.7
+flask-caching
+matplotlib
+redis

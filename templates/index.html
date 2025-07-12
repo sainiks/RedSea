@@ -1,0 +1,147 @@
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>RedSea</title>    
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+        <!-- Preload CSS -->
+        <link rel="preload" href="{{ url_for('static', filename='styles.css') }}" as="style" />
+        <!-- Modern Font -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <!-- Include Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>    
+    <body>
+        <div class="container fade-in">
+            <h1 class="title-animation">RedSea</h1>
+
+            <form method="POST" class="search-form slide-up">
+                <div class="form-group">
+                    <label for="company_name">Enter Company Name:</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="text"
+                            name="company_name"
+                            id="company_name"
+                            required
+                            value="{{ company_name if company_name }}"
+                            class="modern-input"
+                            placeholder="Tesla, Apple, Google"
+                        />
+                        <button type="submit" class="btn btn-animated">
+                            <span class="btn-text">Analyze</span>
+                            <span class="btn-icon">→</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            {% if company_name %}
+            <div class="results-container fade-in">
+                <h2 class="pulse-animation">Sentiment Analysis for "{{ company_name }}"</h2>
+
+                {% if processing_time %}
+                <p class="processing-info slide-up">
+                    <svg class="clock-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Analysis completed in {{ processing_time }} seconds
+                </p>
+                {% endif %}
+                
+                {% if plot_url %}
+                <div class="chart-container scale-in">
+                    <h3>Overall Sentiment Distribution:</h3>
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+                {% endif %}
+
+                <div class="posts-container slide-up">
+                    <h3>Analyzed Posts ({{ posts|length }})</h3>
+                    {% if posts %}
+                    <ul class="post-list">
+                        {% for post in posts %}
+                        <li
+                            class="post-item animate-in sentiment-{{ 'positive' if post.title_sentiment > 0 else 'negative' if post.title_sentiment < 0 else 'neutral' }}"
+                            style="--animation-delay: {{ loop.index * 0.1 }}s"
+                        >
+                            <a href="{{ post.url }}" target="_blank" rel="noopener">
+                                <div class="post-content">
+                                    <h4 class="post-title">{{ post.title }}</h4>
+                                    <div class="sentiment-data">
+                                        <span class="sentiment-badge title-sentiment">
+                                            <span class="badge-label">Title:</span> {{ post.title_sentiment }}
+                                        </span>
+                                        <span class="sentiment-badge comment-sentiment">
+                                            <span class="badge-label">Comments:</span> {{ post.avg_comment_sentiment }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="no-results">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                        <p>No posts found for "{{ company_name }}"</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="intro-message scale-in">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 16v-4"></path>
+                    <path d="M12 8h.01"></path>
+                </svg>
+                <p>Enter a company name above to analyze sentiment from Reddit posts</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Modern JavaScript for interactions -->
+        <script>
+            // Add loading state to form
+            document.querySelector("form").addEventListener("submit", function() {
+                const button = document.querySelector(".btn");
+                button.classList.add("loading");
+                button.querySelector(".btn-text").textContent = "Analyzing";
+                
+                // Add animated dots
+                const dotsContainer = document.createElement("span");
+                dotsContainer.className = "loading-dots";
+                button.appendChild(dotsContainer);
+                
+                button.disabled = true;
+                
+                // Apply animation to results container if it exists
+                const resultsContainer = document.querySelector(".results-container");
+                if (resultsContainer) {
+                    resultsContainer.style.opacity = "0.5";
+                }
+            });
+            
+            // Animate items when they come into view
+            document.addEventListener("DOMContentLoaded", function() {
+                // Add animation classes after page loads
+                setTimeout(() => {
+                    document.querySelectorAll('.fade-in, .slide-up, .scale-in').forEach(el => {
+                        el.classList.add('animated');
+                    });
+                }, 100);
+            });
+        </script>
+        <!-- Include your chart.js script -->
+        <script src="{{ url_for('static', filename='chart.js') }}"></script>
+    </body>
+</html>
