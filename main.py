@@ -20,51 +20,43 @@ app = Flask(__name__)
 
 
 cache_config = {
-    'CACHE_TYPE': 'simple',  # Change to 'redis' in production
-    'CACHE_DEFAULT_TIMEOUT': 1800  # Increased from 300s to 1800s (30 min)
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 1800
 }
 cache = Cache(app, config=cache_config)
 
-# Configure Reddit client once at startup with environment variables
 reddit = praw.Reddit(client_id=os.environ.get("REDDIT_CLIENT_ID", "wxwayoWo8G2jVR6Z5EzbnQ"),
                       client_secret=os.environ.get("REDDIT_CLIENT_SECRET", ""),
                       user_agent=os.environ.get("REDDIT_USER_AGENT", "SentimentPulse"))
 
-# Configure logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
-# Initialize sentiment analyzer once and reuse
 sentiment_analyzer = SentimentIntensityAnalyzer()
 
-# Pre-compile frequently used computations with increased cache size
-@lru_cache(maxsize=512)  # Increased from default
+@lru_cache(maxsize=512)
 def get_sentiment(text):
-    """Analyze sentiment of text using VADER (much faster than TextBlob)"""
     if not text or not isinstance(text, str):
         return 0.0
-
-    # VADER is optimized for social media text
     scores = sentiment_analyzer.polarity_scores(text)
-    return scores['compound']  # Returns a value between -1 and 1
+    return scores['compound']
 
 
-@cache.memoize(timeout=1800)  # cache for 30 min
+@cache.memoize(timeout=1800)
 def get_reddit_posts(company_name, limit=50):
     try:
         subreddit = reddit.subreddit("all")
-        posts = list(subreddit.search(company_name, limit=limit))
+        # Sort by new to get recent posts for time series analysis
+        posts = list(subreddit.search(company_name, limit=limit, sort='new'))
         return posts
-    except Exception as e:  # Handle errors during Reddit API interaction
+    except Exception as e:
         logger.error(f"Error fetching Reddit data: {e}")
         return []
 
 
 def analyze_post(post):
-    """Analyze a single post and its comments with optimized processing"""
     title_sentiment = get_sentiment(post.title)
 
-    # Process only top 2 comments instead of 3 for better performance
     post.comments.replace_more(limit=0)
     comments = list(post.comments)[:2]
     comment_sentiments = [get_sentiment(comment.body) for comment in comments if hasattr(comment, 'body')]
@@ -75,40 +67,43 @@ def analyze_post(post):
         "title": post.title,
         "title_sentiment": round(title_sentiment, 2),
         "avg_comment_sentiment": round(avg_comment_sentiment, 2),
-        "url": post.url
+        "url": post.url,
+        "created_utc": post.created_utc # Pass timestamp for time series analysis
     }
 
 
-def calculate_time_series_sentiment(analyzed_posts, interval_seconds=60):
-    """Calculate time series sentiment data."""
-    now = datetime.datetime.now()
-    # Create time intervals
-    time_intervals = [(now - datetime.timedelta(seconds=i * interval_seconds)).strftime("%Y-%m-%d %H:%M:%S")
-                      for i in range(10, -1, -1)]
+def calculate_time_series_sentiment(analyzed_posts, num_intervals=12, interval_minutes=10):
+    """Calculate time series sentiment data from actual post times."""
+    sentiment_data = []
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
 
-    sentiment_data = {interval: {"positive": 0, "negative": 0, "neutral": 0, "total": 0}
-                      for interval in time_intervals}
+    # Make sure we have posts to analyze
+    if not analyzed_posts:
+        return []
 
-    for post in analyzed_posts:
-        post_time_offset = np.random.randint(0, interval_seconds * len(time_intervals))  # Simulate comment times within the entire range of intervals
-        post_time = now - datetime.timedelta(seconds=post_time_offset)
-        # Find the correct time interval for this post
-        for i, interval in enumerate(time_intervals):
-            interval_start = now - datetime.timedelta(seconds=i * interval_seconds)
-            interval_end = now - datetime.timedelta(seconds=(i + 1) * interval_seconds)
-            if interval_end <= post_time < interval_start:
-                time_key = interval
-                break
-        else:
-            continue
-        if time_key in sentiment_data:  # Ensure we only use one interval
-            sentiment_value = post["title_sentiment"]
-            sentiment_data[time_key]["positive"] += int(sentiment_value > 0)
-            sentiment_data[time_key]["negative"] += int(sentiment_value < 0)
-            sentiment_data[time_key]["neutral"] += int(sentiment_value == 0)
-            sentiment_data[time_key]["total"] += 1
-    
-    return [{"time": interval, **data} for interval, data in sentiment_data.items() if data["total"] > 0]
+    for i in range(num_intervals):
+        interval_end = now_utc - datetime.timedelta(minutes=i * interval_minutes)
+        interval_start = now_utc - datetime.timedelta(minutes=(i + 1) * interval_minutes)
+        
+        interval_posts = [
+            p for p in analyzed_posts 
+            if interval_start <= datetime.datetime.fromtimestamp(p['created_utc'], tz=datetime.timezone.utc) < interval_end
+        ]
+        
+        positive = sum(1 for p in interval_posts if p['title_sentiment'] > 0.05)
+        negative = sum(1 for p in interval_posts if p['title_sentiment'] < -0.05)
+        neutral = sum(1 for p in interval_posts if -0.05 <= p['title_sentiment'] <= 0.05)
+        total = len(interval_posts)
+
+        sentiment_data.append({
+            "time": interval_start.strftime("%Y-%m-%d %H:%M:%S"),
+            "positive": positive,
+            "negative": negative,
+            "neutral": neutral,
+            "total": total
+        })
+
+    return sorted(sentiment_data, key=lambda x: x['time'])
 
 
 @app.route("/sentiment-data")
@@ -116,8 +111,10 @@ def sentiment_data():
     company_name = request.args.get("company_name")
     if not company_name:
         return jsonify([])
+    
     posts = get_reddit_posts(company_name)
     analyzed_posts = list(map(analyze_post, posts))
+    
     time_series_data = calculate_time_series_sentiment(analyzed_posts)
     return jsonify(time_series_data)
 
@@ -131,14 +128,15 @@ def index():
 
         analyzed_posts = []
         if posts:
-
             chunk_size = 4
             post_chunks = [posts[i:i + chunk_size] for i in range(0, len(posts), chunk_size)]
-
             with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
                 for chunk in post_chunks:
                     chunk_results = list(executor.map(analyze_post, chunk))
                     analyzed_posts.extend(chunk_results)
+        
+        # Sort posts by time for display
+        analyzed_posts.sort(key=lambda x: x['created_utc'], reverse=True)
 
         processing_time = round(time.time() - start_time, 2)
         return render_template(
@@ -151,8 +149,6 @@ def index():
     return render_template("index.html")
 
 if __name__ == "__main__":
-
-    # Fix for Reddit API authentication
     if not os.environ.get("REDDIT_CLIENT_SECRET"):
         print("WARNING: Reddit client secret not set in environment variables.")
         print("Please create a .env file with your Reddit API credentials.")
