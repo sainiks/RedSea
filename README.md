@@ -1,4 +1,4 @@
-# Flask Web App Starter
+# RedSea
 
 ## Description
 
