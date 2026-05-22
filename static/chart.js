@@ -21,18 +21,18 @@ async function getSentimentData(companyName) {
 function createSentimentChart(data) {
     const ctx = document.getElementById('sentimentChart').getContext('2d');
     
-    // Create modern glowing color gradients for area fills under lines
+    // Create ultra-clean, soft Apple pastel gradients for area fills under lines
     const positiveGradient = ctx.createLinearGradient(0, 0, 0, 300);
-    positiveGradient.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
-    positiveGradient.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
+    positiveGradient.addColorStop(0, 'rgba(52, 199, 89, 0.08)');
+    positiveGradient.addColorStop(1, 'rgba(52, 199, 89, 0.00)');
 
     const negativeGradient = ctx.createLinearGradient(0, 0, 0, 300);
-    negativeGradient.addColorStop(0, 'rgba(239, 68, 68, 0.18)');
-    negativeGradient.addColorStop(1, 'rgba(239, 68, 68, 0.00)');
+    negativeGradient.addColorStop(0, 'rgba(255, 59, 48, 0.08)');
+    negativeGradient.addColorStop(1, 'rgba(255, 59, 48, 0.00)');
 
     const neutralGradient = ctx.createLinearGradient(0, 0, 0, 300);
-    neutralGradient.addColorStop(0, 'rgba(245, 158, 11, 0.15)');
-    neutralGradient.addColorStop(1, 'rgba(245, 158, 11, 0.00)');
+    neutralGradient.addColorStop(0, 'rgba(255, 204, 0, 0.08)');
+    neutralGradient.addColorStop(1, 'rgba(255, 204, 0, 0.00)');
 
     const chart = new Chart(ctx, {
       type: 'line',
@@ -42,39 +42,42 @@ function createSentimentChart(data) {
           {
             label: 'Bullish',
             data: data.map(item => item.positive),
-            borderColor: 'rgb(16, 185, 129)',
+            borderColor: 'rgb(52, 199, 89)', // Mint Green
             backgroundColor: positiveGradient,
-            borderWidth: 2,
+            borderWidth: 2.5,
             tension: 0.4,
             fill: true,
-            pointBackgroundColor: 'rgb(16, 185, 129)',
-            pointBorderColor: 'rgba(255, 255, 255, 0.8)',
+            pointBackgroundColor: 'rgb(52, 199, 89)',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.5,
             pointRadius: 2,
             pointHoverRadius: 6
           },
           {
             label: 'Bearish',
             data: data.map(item => item.negative),
-            borderColor: 'rgb(239, 68, 68)',
+            borderColor: 'rgb(255, 59, 48)', // System Red
             backgroundColor: negativeGradient,
-            borderWidth: 2,
+            borderWidth: 2.5,
             tension: 0.4,
             fill: true,
-            pointBackgroundColor: 'rgb(239, 68, 68)',
-            pointBorderColor: 'rgba(255, 255, 255, 0.8)',
+            pointBackgroundColor: 'rgb(255, 59, 48)',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.5,
             pointRadius: 2,
             pointHoverRadius: 6
           },
           {
             label: 'Neutral',
             data: data.map(item => item.neutral),
-            borderColor: 'rgb(245, 158, 11)',
+            borderColor: 'rgb(255, 204, 0)', // System Gold
             backgroundColor: neutralGradient,
-            borderWidth: 2,
+            borderWidth: 2.5,
             tension: 0.4,
             fill: true,
-            pointBackgroundColor: 'rgb(245, 158, 11)',
-            pointBorderColor: 'rgba(255, 255, 255, 0.8)',
+            pointBackgroundColor: 'rgb(255, 204, 0)',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.5,
             pointRadius: 2,
             pointHoverRadius: 6
           }
@@ -87,20 +90,21 @@ function createSentimentChart(data) {
           y: {
             beginAtZero: true,
             grid: {
-              color: 'rgba(255, 255, 255, 0.04)',
+              color: 'rgba(0, 0, 0, 0.035)',
               drawBorder: false
             },
             ticks: {
-              color: 'rgba(255, 255, 255, 0.55)',
+              color: 'rgba(28, 28, 30, 0.55)',
               font: {
                 family: 'Plus Jakarta Sans',
-                size: 11
+                size: 11,
+                weight: '500'
               }
             },
             title: {
               display: true,
               text: 'Discussion Volumetrics',
-              color: 'rgba(255, 255, 255, 0.65)',
+              color: 'rgba(28, 28, 30, 0.65)',
               font: {
                 family: 'Outfit',
                 size: 12,
@@ -110,20 +114,21 @@ function createSentimentChart(data) {
           },
           x: {
             grid: {
-              color: 'rgba(255, 255, 255, 0.04)',
+              color: 'rgba(0, 0, 0, 0.035)',
               drawBorder: false
             },
             ticks: {
-              color: 'rgba(255, 255, 255, 0.55)',
+              color: 'rgba(28, 28, 30, 0.55)',
               font: {
                 family: 'Plus Jakarta Sans',
-                size: 11
+                size: 11,
+                weight: '500'
               }
             },
             title: {
               display: true,
               text: 'Scanned Interval',
-              color: 'rgba(255, 255, 255, 0.65)',
+              color: 'rgba(28, 28, 30, 0.65)',
               font: {
                 family: 'Outfit',
                 size: 12,
@@ -136,41 +141,43 @@ function createSentimentChart(data) {
           legend: {
             position: 'top',
             labels: {
-              color: 'rgba(255, 255, 255, 0.8)',
+              color: 'rgba(28, 28, 30, 0.8)',
               font: {
                 family: 'Outfit',
-                size: 12,
+                size: 11,
                 weight: '600'
               },
               usePointStyle: true,
-              boxWidth: 8,
+              boxWidth: 6,
               padding: 15
             }
           },
           tooltip: {
             mode: 'index',
             intersect: false,
-            backgroundColor: 'rgba(10, 10, 15, 0.9)',
-            titleColor: 'rgb(255, 255, 255)',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            titleColor: 'rgb(28, 28, 30)',
             titleFont: {
               family: 'Outfit',
               weight: '700',
               size: 13
             },
-            bodyColor: 'rgba(255, 255, 255, 0.8)',
+            bodyColor: 'rgba(28, 28, 30, 0.8)',
             bodyFont: {
               family: 'Plus Jakarta Sans',
               size: 12
             },
-            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderColor: 'rgba(0, 0, 0, 0.08)',
             borderWidth: 1,
             padding: 12,
-            cornerRadius: 10,
+            cornerRadius: 12,
             caretSize: 6,
             boxWidth: 8,
             boxHeight: 8,
             boxPadding: 4,
-            usePointStyle: true
+            usePointStyle: true,
+            shadowColor: 'rgba(0, 0, 0, 0.1)',
+            shadowBlur: 10
           },
         },
       }
