@@ -16,28 +16,10 @@ from requests.exceptions import RequestException
 
 load_dotenv()
 
-# Configure a writable directory in /tmp for NLTK in serverless environments (like Vercel)
-nltk_data_dir = os.path.join('/tmp', 'nltk_data')
-if not os.path.exists(nltk_data_dir):
-    try:
-        os.makedirs(nltk_data_dir, exist_ok=True)
-    except Exception:
-        pass
-
-if os.path.exists(nltk_data_dir):
-    nltk.data.path.append(nltk_data_dir)
-
-try:
-    nltk.data.find('sentiment/vader_lexicon.zip')
-except LookupError:
-    try:
-        nltk.download('vader_lexicon', quiet=True)
-    except (OSError, IOError):
-        nltk.download('vader_lexicon', download_dir=nltk_data_dir, quiet=True)
-
-
 app = Flask(__name__)
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 cache_config = {
     'CACHE_TYPE': 'simple',
@@ -45,21 +27,71 @@ cache_config = {
 }
 cache = Cache(app, config=cache_config)
 
-reddit = praw.Reddit(client_id=os.environ.get("REDDIT_CLIENT_ID"),
-                      client_secret=os.environ.get("REDDIT_CLIENT_SECRET"),
-                      user_agent=os.environ.get("REDDIT_USER_AGENT", "RedSea/1.0"))
+# Lazy-loaded Sentiment Intensity Analyzer
+sentiment_analyzer = None
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+def get_sentiment_analyzer():
+    global sentiment_analyzer
+    if sentiment_analyzer is None:
+        try:
+            nltk_data_dir = os.path.join('/tmp', 'nltk_data')
+            if not os.path.exists(nltk_data_dir):
+                try:
+                    os.makedirs(nltk_data_dir, exist_ok=True)
+                except Exception:
+                    pass
 
-sentiment_analyzer = SentimentIntensityAnalyzer()
+            if os.path.exists(nltk_data_dir):
+                if nltk_data_dir not in nltk.data.path:
+                    nltk.data.path.append(nltk_data_dir)
+
+            try:
+                nltk.data.find('sentiment/vader_lexicon.zip')
+            except LookupError:
+                try:
+                    nltk.download('vader_lexicon', quiet=True)
+                except (OSError, IOError):
+                    nltk.download('vader_lexicon', download_dir=nltk_data_dir, quiet=True)
+        except Exception as e:
+            logger.error(f"Error setting up NLTK paths or download: {e}")
+
+        sentiment_analyzer = SentimentIntensityAnalyzer()
+    return sentiment_analyzer
+
+
+# Lazy-loaded Reddit API wrapper
+reddit = None
+
+def get_reddit_instance():
+    global reddit
+    if reddit is None:
+        client_id = os.environ.get("REDDIT_CLIENT_ID")
+        client_secret = os.environ.get("REDDIT_CLIENT_SECRET")
+        user_agent = os.environ.get("REDDIT_USER_AGENT", "RedSea")
+
+        if not client_id or not client_secret:
+            logger.error("Missing REDDIT_CLIENT_ID or REDDIT_CLIENT_SECRET in environment variables.")
+            raise PrawException("Reddit API credentials not configured in environment variables.")
+
+        reddit = praw.Reddit(
+            client_id=client_id,
+            client_secret=client_secret,
+            user_agent=user_agent
+        )
+    return reddit
+
 
 @lru_cache(maxsize=512)
 def get_sentiment(text):
     if not text or not isinstance(text, str):
         return 0.0
-    scores = sentiment_analyzer.polarity_scores(text)
-    return scores['compound']
+    try:
+        analyzer = get_sentiment_analyzer()
+        scores = analyzer.polarity_scores(text)
+        return scores['compound']
+    except Exception as e:
+        logger.error(f"Failed to calculate sentiment: {e}")
+        return 0.0
 
 
 # Tune batch/thread usage parameters for flexibility
@@ -81,7 +113,8 @@ def get_reddit_posts(company_name, limit=50, max_retries=3):
     """
     for attempt in range(max_retries):
         try:
-            subreddit = reddit.subreddit("all")
+            reddit_instance = get_reddit_instance()
+            subreddit = reddit_instance.subreddit("all")
             posts = list(subreddit.search(company_name, limit=limit, sort='new'))
             return posts
         except (PrawException, RequestException) as e:
