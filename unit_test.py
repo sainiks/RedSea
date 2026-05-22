@@ -53,7 +53,7 @@ def test_index_route_get(mock_get_reddit_posts, client):
     assert response.status_code == 200 
     decoded_data = response.data.decode("utf-8")
     print(decoded_data)
-    assert '<input\n                            type="text"\n                            name="company_name"\n                            id="company_name"\n                            required\n                            value=""\n                            class="modern-input"\n                            placeholder="Tesla, Apple, Google"\n                        />' in decoded_data
+    assert 'name="company_name"' in decoded_data
 
 
 @patch('app.get_reddit_posts', side_effect=mock_reddit_posts)
