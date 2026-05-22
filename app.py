@@ -16,10 +16,25 @@ from requests.exceptions import RequestException
 
 load_dotenv()
 
+# Configure a writable directory in /tmp for NLTK in serverless environments (like Vercel)
+nltk_data_dir = os.path.join('/tmp', 'nltk_data')
+if not os.path.exists(nltk_data_dir):
+    try:
+        os.makedirs(nltk_data_dir, exist_ok=True)
+    except Exception:
+        pass
+
+if os.path.exists(nltk_data_dir):
+    nltk.data.path.append(nltk_data_dir)
+
 try:
     nltk.data.find('sentiment/vader_lexicon.zip')
 except LookupError:
-    nltk.download('vader_lexicon', quiet=True)
+    try:
+        nltk.download('vader_lexicon', quiet=True)
+    except (OSError, IOError):
+        nltk.download('vader_lexicon', download_dir=nltk_data_dir, quiet=True)
+
 
 app = Flask(__name__)
 
