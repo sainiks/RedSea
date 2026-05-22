@@ -478,9 +478,9 @@ label {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 25vh;
-    min-height: 180px;
-    max-height: 260px;
+    height: 35vh;
+    min-height: 260px;
+    max-height: 380px;
     z-index: -1;
     overflow: hidden;
     pointer-events: none;
@@ -505,27 +505,37 @@ label {
 
 .parallax > use:nth-child(2) {
     animation-delay: -4s;
-    animation-duration: 11s;
+    animation-duration: 10s;
 }
 
 .parallax > use:nth-child(3) {
     animation-delay: -6s;
-    animation-duration: 14s;
+    animation-duration: 12s;
 }
 
 .parallax > use:nth-child(4) {
     animation-delay: -8s;
-    animation-duration: 17s;
+    animation-duration: 14s;
 }
 
 .parallax > use:nth-child(5) {
     animation-delay: -10s;
-    animation-duration: 20s;
+    animation-duration: 16s;
 }
 
 .parallax > use:nth-child(6) {
     animation-delay: -12s;
-    animation-duration: 23s;
+    animation-duration: 18s;
+}
+
+.parallax > use:nth-child(7) {
+    animation-delay: -14s;
+    animation-duration: 20s;
+}
+
+.parallax > use:nth-child(8) {
+    animation-delay: -16s;
+    animation-duration: 22s;
 }
 
 @keyframes move-forever {
@@ -540,7 +550,7 @@ label {
 /* Responsive adjustment for waves height on small screens */
 @media (max-width: 768px) {
     .waves-container {
-        height: 100px;
-        min-height: 100px;
+        height: 140px;
+        min-height: 140px;
     }
 }
