@@ -11,7 +11,7 @@ import os
 import datetime
 from dotenv import load_dotenv
 import numpy as np
-from praw.exceptions import PrawException
+from praw.exceptions import PRAWException
 from requests.exceptions import RequestException
 
 load_dotenv()
@@ -71,7 +71,7 @@ def get_reddit_instance():
 
         if not client_id or not client_secret:
             logger.error("Missing REDDIT_CLIENT_ID or REDDIT_CLIENT_SECRET in environment variables.")
-            raise PrawException("Reddit API credentials not configured in environment variables.")
+            raise PRAWException("Reddit API credentials not configured in environment variables.")
 
         reddit = praw.Reddit(
             client_id=client_id,
@@ -117,7 +117,7 @@ def get_reddit_posts(company_name, limit=50, max_retries=3):
             subreddit = reddit_instance.subreddit("all")
             posts = list(subreddit.search(company_name, limit=limit, sort='new'))
             return posts
-        except (PrawException, RequestException) as e:
+        except (PRAWException, RequestException) as e:
             wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
             logger.warning(f"Attempt {attempt + 1} failed fetching Reddit data: {e}. Retrying in {wait_time}s...")
             if attempt < max_retries - 1:

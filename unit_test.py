@@ -28,6 +28,7 @@ def mock_reddit_posts(company_name, limit=20):
             self.title = title
             self.url = url       
             self.comments = MockComments(comments)
+            self.created_utc = 1779433777
 
     class MockComment:
         def __init__(self, body):
