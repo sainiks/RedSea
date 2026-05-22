@@ -17,6 +17,125 @@ async function getSentimentData(companyName) {
     const data = await response.json();
     return data;
   }
+
+function getOrCreateTooltip(chart) {
+  let tooltipEl = document.getElementById('chartjs-tooltip');
+
+  if (!tooltipEl) {
+    tooltipEl = document.createElement('div');
+    tooltipEl.id = 'chartjs-tooltip';
+    tooltipEl.innerHTML = `
+      <div class="tooltip-title"></div>
+      <div class="tooltip-body"></div>
+    `;
+    chart.canvas.parentNode.appendChild(tooltipEl);
+  }
+
+  return tooltipEl;
+}
+
+function externalTooltipHandler(context) {
+  // Tooltip Element
+  const {chart, tooltip} = context;
+  const tooltipEl = getOrCreateTooltip(chart);
+
+  // Hide if no tooltip
+  if (tooltip.opacity === 0) {
+    tooltipEl.style.opacity = '0';
+    return;
+  }
+
+  // Set Text
+  if (tooltip.body) {
+    const titleLines = tooltip.title || [];
+    const titleEl = tooltipEl.querySelector('.tooltip-title');
+    titleEl.innerHTML = titleLines.join('<br>');
+
+    const bodyEl = tooltipEl.querySelector('.tooltip-body');
+    bodyEl.innerHTML = '';
+
+    tooltip.dataPoints.forEach((dataPoint) => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'tooltip-item';
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'tooltip-item-label';
+      
+      const dotEl = document.createElement('span');
+      dotEl.className = 'legend-dot';
+      dotEl.style.backgroundColor = dataPoint.dataset.borderColor;
+      
+      labelEl.appendChild(dotEl);
+      
+      const labelText = document.createTextNode(` ${dataPoint.dataset.label}`);
+      labelEl.appendChild(labelText);
+
+      const valEl = document.createElement('span');
+      valEl.className = 'tooltip-item-value';
+      valEl.style.color = dataPoint.dataset.borderColor;
+      valEl.innerText = parseFloat(dataPoint.raw).toFixed(2);
+
+      itemEl.appendChild(labelEl);
+      itemEl.appendChild(valEl);
+      bodyEl.appendChild(itemEl);
+    });
+  }
+
+  const {offsetLeft: positionX, offsetTop: positionY} = chart.canvas;
+
+  // Display, position, and set styles for font
+  tooltipEl.style.opacity = '1';
+  tooltipEl.style.left = positionX + tooltip.caretX + 'px';
+  tooltipEl.style.top = positionY + tooltip.caretY - tooltip.height - 15 + 'px';
+}
+
+function createCustomLegend(chart) {
+  const container = chart.canvas.parentNode;
+  
+  // Remove existing legend if any
+  const existingLegend = container.querySelector('.custom-legend');
+  if (existingLegend) {
+    existingLegend.remove();
+  }
+
+  const legendWrapper = document.createElement('div');
+  legendWrapper.className = 'custom-legend';
+
+  const datasets = chart.data.datasets;
+  datasets.forEach((dataset, index) => {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    
+    // Add custom classes matching sentiment colors
+    let labelLower = dataset.label.toLowerCase();
+    pill.className = `legend-pill ${labelLower.substring(0, 3)}`;
+    
+    const dot = document.createElement('span');
+    dot.className = 'legend-dot';
+    
+    const text = document.createElement('span');
+    text.innerText = dataset.label;
+
+    pill.appendChild(dot);
+    pill.appendChild(text);
+
+    pill.addEventListener('click', () => {
+      const isVisible = chart.isDatasetVisible(index);
+      if (isVisible) {
+        chart.hide(index);
+        pill.classList.add('dataset-hidden');
+      } else {
+        chart.show(index);
+        pill.classList.remove('dataset-hidden');
+      }
+    });
+
+    legendWrapper.appendChild(pill);
+  });
+
+  // Insert centered right above the chart canvas
+  container.insertBefore(legendWrapper, chart.canvas);
+}
   
   function createSentimentChart(data) {
     const ctx = document.getElementById('sentimentChart').getContext('2d');
@@ -28,23 +147,47 @@ async function getSentimentData(companyName) {
           {
             label: 'Positive',
             data: data.map(item => item.positive),
-            borderColor: 'rgba(54, 162, 235, 1)',
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            borderWidth: 1
+            borderColor: '#2ecc71',
+            backgroundColor: 'rgba(46, 204, 113, 0.04)',
+            borderWidth: 2,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 8,
+            pointBackgroundColor: '#2ecc71',
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: '#2ecc71',
+            pointHoverBorderWidth: 3,
+            fill: true
           },
           {
             label: 'Negative',
             data: data.map(item => item.negative),
-            borderColor: 'rgba(255, 99, 132, 1)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            borderWidth: 1
+            borderColor: '#e74c3c',
+            backgroundColor: 'rgba(231, 76, 60, 0.04)',
+            borderWidth: 2,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 8,
+            pointBackgroundColor: '#e74c3c',
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: '#e74c3c',
+            pointHoverBorderWidth: 3,
+            fill: true
           },
           {
             label: 'Neutral',
             data: data.map(item => item.neutral),
-            borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderWidth: 1
+            borderColor: '#f1c40f',
+            backgroundColor: 'rgba(241, 196, 15, 0.04)',
+            borderWidth: 2,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 8,
+            pointBackgroundColor: '#f1c40f',
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: '#f1c40f',
+            pointHoverBorderWidth: 3,
+            fill: true
           }
         ]
       },
@@ -53,24 +196,57 @@ async function getSentimentData(companyName) {
         scales: {
           y: {
             beginAtZero: true,
+            grid: {
+              color: 'rgba(255, 255, 255, 0.05)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#a0a0a0',
+              font: {
+                family: "'Inter', sans-serif"
+              }
+            },
             title: {
               display: true,
-              text: 'Sentiment Score'
+              text: 'Sentiment Score',
+              color: '#e0e0e0',
+              font: {
+                family: "'Inter', sans-serif",
+                weight: '600'
+              }
             }
           },
           x: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.05)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#a0a0a0',
+              font: {
+                family: "'Inter', sans-serif"
+              }
+            },
             title: {
               display: true,
-              text: 'Time'
+              text: 'Time',
+              color: '#e0e0e0',
+              font: {
+                family: "'Inter', sans-serif",
+                weight: '600'
+              }
             }
           }
         },
         plugins: {
-          tooltip: {
-            mode: 'index',
-            intersect: false,
+          legend: {
+            display: false // Hide default legend
           },
-        },
+          tooltip: {
+            enabled: false, // Hide default tooltip
+            external: externalTooltipHandler // Wire up custom HTML tooltip
+          }
+        }
       }
     });
     return chart;
@@ -98,6 +274,10 @@ async function getSentimentData(companyName) {
     const preloaded = Array.isArray(window.initialSentimentData) ? window.initialSentimentData : [];
     const initialData = preloaded.length ? preloaded : await getSentimentData(companyName);
     const chart = createSentimentChart(initialData);
+    
+    // Create Custom Legend controls!
+    createCustomLegend(chart);
+
     if (preloaded.length) {
       updateChart(chart, companyName);
     }
