@@ -478,9 +478,9 @@ label {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 35vh;
-    min-height: 260px;
-    max-height: 380px;
+    height: 45vh;
+    min-height: 320px;
+    max-height: 480px;
     z-index: -1;
     overflow: hidden;
     pointer-events: none;
@@ -493,64 +493,76 @@ label {
     margin-bottom: -7px; /* Fix for Safari alignment gap */
 }
 
-/* Parallax Wave Animation */
-.parallax > use {
-    animation: move-forever 25s cubic-bezier(.55, .5, .45, .5) infinite;
-}
-
+/* Individual Parallax Wave Animations with Multidirectional & Bobbing Flows */
 .parallax > use:nth-child(1) {
+    animation: move-forward-1 8s cubic-bezier(.5, .5, .5, .5) infinite;
     animation-delay: -2s;
-    animation-duration: 8s;
 }
 
 .parallax > use:nth-child(2) {
+    animation: move-reverse-1 11s cubic-bezier(.55, .45, .45, .55) infinite;
     animation-delay: -4s;
-    animation-duration: 10s;
 }
 
 .parallax > use:nth-child(3) {
+    animation: move-forward-2 14s cubic-bezier(.6, .4, .4, .6) infinite;
     animation-delay: -6s;
-    animation-duration: 12s;
 }
 
 .parallax > use:nth-child(4) {
+    animation: move-reverse-2 17s cubic-bezier(.45, .55, .55, .45) infinite;
     animation-delay: -8s;
-    animation-duration: 14s;
 }
 
 .parallax > use:nth-child(5) {
+    animation: move-forward-1 20s cubic-bezier(.5, .4, .6, .5) infinite;
     animation-delay: -10s;
-    animation-duration: 16s;
 }
 
 .parallax > use:nth-child(6) {
+    animation: move-reverse-1 23s cubic-bezier(.4, .5, .5, .6) infinite;
     animation-delay: -12s;
-    animation-duration: 18s;
 }
 
 .parallax > use:nth-child(7) {
+    animation: move-forward-2 26s cubic-bezier(.55, .55, .45, .45) infinite;
     animation-delay: -14s;
-    animation-duration: 20s;
 }
 
 .parallax > use:nth-child(8) {
+    animation: move-reverse-2 29s cubic-bezier(.5, .5, .5, .5) infinite;
     animation-delay: -16s;
-    animation-duration: 22s;
 }
 
-@keyframes move-forever {
-    0% {
-        transform: translate3d(-90px, 0, 0);
-    }
-    100% {
-        transform: translate3d(85px, 0, 0);
-    }
+/* Four unique keyframes to vary directions, translation distances, and vertical bobbing */
+@keyframes move-forward-1 {
+    0% { transform: translate3d(-90px, 0, 0) scaleY(1); }
+    50% { transform: translate3d(-5px, 2px, 0) scaleY(0.95); }
+    100% { transform: translate3d(85px, 0, 0) scaleY(1); }
+}
+
+@keyframes move-forward-2 {
+    0% { transform: translate3d(-70px, 0, 0) scaleY(1.05); }
+    50% { transform: translate3d(5px, -3px, 0) scaleY(0.95); }
+    100% { transform: translate3d(95px, 0, 0) scaleY(1.05); }
+}
+
+@keyframes move-reverse-1 {
+    0% { transform: translate3d(85px, 0, 0) scaleY(1); }
+    50% { transform: translate3d(-5px, -2px, 0) scaleY(1.05); }
+    100% { transform: translate3d(-90px, 0, 0) scaleY(1); }
+}
+
+@keyframes move-reverse-2 {
+    0% { transform: translate3d(95px, 0, 0) scaleY(0.95); }
+    50% { transform: translate3d(5px, 3px, 0) scaleY(1.05); }
+    100% { transform: translate3d(-70px, 0, 0) scaleY(0.95); }
 }
 
 /* Responsive adjustment for waves height on small screens */
 @media (max-width: 768px) {
     .waves-container {
-        height: 140px;
-        min-height: 140px;
+        height: 180px;
+        min-height: 180px;
     }
 }
